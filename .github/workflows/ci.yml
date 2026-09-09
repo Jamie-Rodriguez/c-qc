@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unix:
+    name: ${{ matrix.os }} / ${{ matrix.cc }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, cc: gcc }
+          - { os: ubuntu-24.04, cc: clang }
+          - { os: macos-15, cc: clang }
+    steps:
+      - uses: actions/checkout@v4
+      - run: make check CC=${{ matrix.cc }}
+
+  windows:
+    name: windows-2022 / ${{ matrix.toolset }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { toolset: msvc, cmake_args: "" }
+          - { toolset: clang-cl, cmake_args: "-T ClangCL" }
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build ${{ matrix.cmake_args }}
+      - run: cmake --build build --config Release
+      - run: ctest --test-dir build -C Release --output-on-failure
