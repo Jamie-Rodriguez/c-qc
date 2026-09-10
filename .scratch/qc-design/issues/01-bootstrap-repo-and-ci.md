@@ -11,3 +11,44 @@ Turn this directory into a git repository on GitHub with a GitHub Actions matrix
 Human steps (creating the GitHub repository, authenticating `gh`) go in a precise checklist for the human. The agent does the rest.
 
 Resolved when CI is green on all three platforms. The answer records the repo URL, the workflow file path, and any toolchain quirks discovered (for example how GNU Make and MSVC were reconciled on the Windows runner).
+
+## Comments
+
+### 2026-09-10 — agent half done, waiting on the human half
+
+Done locally, committed on `main` as the initial commit:
+
+- `tests/smoke.c` — a C99 program (designated initializer, `<stdbool.h>`, `<stdint.h>`) that exits 0 only if the toolchain compiled it correctly. The exit code is the test, so Make and ctest check the same thing.
+- `Makefile` — Unix build. `make check CC=<cc>` compiles with `-std=c99 -pedantic -Wall -Wextra -Werror` into `build/` and runs the program. Compatible with GNU Make 3.81 (macOS's bundled make).
+- `CMakeLists.txt` — Windows-only build. Warns (does not fail) on non-Windows so it can be syntax-checked locally. `/W4 /WX` under MSVC and clang-cl; `add_test` on the smoke binary.
+- `.github/workflows/ci.yml` — five jobs: ubuntu-24.04 gcc, ubuntu-24.04 clang, macos-15 clang (all via `make check`), windows-2022 MSVC and windows-2022 clang-cl (via CMake, clang-cl selected with `-T ClangCL`).
+- `.gitignore`, MIT `LICENSE`.
+
+Verified on this Mac: `make check` passes with Apple clang and Homebrew clang; CMake configure, build, and ctest pass. Failure mode verified: with the smoke program deliberately broken, `make check` exits 2 and ctest exits 8, then restored and re-run green.
+
+**Human checklist** (the agent cannot do these: `gh` is not installed and no GitHub credentials exist here):
+
+1. Install and authenticate the GitHub CLI:
+   ```
+   brew install gh
+   gh auth login
+   ```
+2. Create the repository from this directory and push. Pick the name you want; `qc` is suggested (the glossary avoids `qc-c` for the library, but the repo name is your call):
+   ```
+   cd ~/code/qc-c
+   gh repo create qc --public --source=. --remote=origin --push
+   ```
+3. Watch the first CI run and confirm all five jobs are green:
+   ```
+   gh run watch
+   ```
+4. If the clang-cl job fails at configure with "toolset ClangCL not found", the runner image dropped the Clang component. Fix: add a step before configure that installs it, or switch that job to `-DCMAKE_C_COMPILER=clang-cl` with the Ninja generator. Report which happened.
+5. Rerun `/wayfinder` on this ticket with the repo URL and the run result. The next session records the answer, marks it resolved, and adds the pointer to the map.
+
+Ticket stays `claimed` until then so other sessions skip it.
+
+**Quirks noted so far** (for the answer):
+
+- GNU Make is never used on Windows. The ticket's "GNU Make elsewhere" split means Windows is CMake-only, so nothing had to be reconciled with MSVC on the Windows runner; MSVC versus clang-cl is a CMake toolset switch, not a separate build file.
+- MSVC has no `-std=c99` equivalent. `CMAKE_C_STANDARD 99` is a no-op there, so strictness on Windows rests on `/W4 /WX`; the C99 header rule is enforced by the GCC and Clang jobs with `-pedantic -Werror`.
+- The MSVC 2015 floor is not exercised by CI. The Windows runner has Visual Studio 2022 only. Checking VS2015 compatibility stays a manual or fog item.
