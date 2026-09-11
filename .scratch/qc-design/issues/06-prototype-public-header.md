@@ -1,7 +1,7 @@
 # Prototype the public header
 
 Type: prototype
-Status: open
+Status: claimed
 Blocked by: none
 
 ## Question
