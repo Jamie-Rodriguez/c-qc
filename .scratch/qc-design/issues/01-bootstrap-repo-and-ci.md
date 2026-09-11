@@ -1,7 +1,7 @@
 # Bootstrap the repo and three-OS CI
 
 Type: task
-Status: claimed
+Status: resolved
 Blocked by: none
 
 ## Question
@@ -52,3 +52,21 @@ Ticket stays `claimed` until then so other sessions skip it.
 - GNU Make is never used on Windows. The ticket's "GNU Make elsewhere" split means Windows is CMake-only, so nothing had to be reconciled with MSVC on the Windows runner; MSVC versus clang-cl is a CMake toolset switch, not a separate build file.
 - MSVC has no `-std=c99` equivalent. `CMAKE_C_STANDARD 99` is a no-op there, so strictness on Windows rests on `/W4 /WX`; the C99 header rule is enforced by the GCC and Clang jobs with `-pedantic -Werror`.
 - The MSVC 2015 floor is not exercised by CI. The Windows runner has Visual Studio 2022 only. Checking VS2015 compatibility stays a manual or fog item.
+
+### 2026-09-11 — human half done, CI green
+
+The human created the repository and pushed. The first run on `main` (commit `1e3dcac`) completed with all five jobs green, no clang-cl toolset workaround needed.
+
+## Answer
+
+- **Repo URL:** https://github.com/Jamie-Rodriguez/c-qc (public, default branch `main`). The repo is named `c-qc`; the library and its prefix stay `qc` per the glossary.
+- **Workflow file:** `.github/workflows/ci.yml`. Five jobs: `ubuntu-24.04 / gcc`, `ubuntu-24.04 / clang`, `macos-15 / clang` (all `make check`), `windows-2022 / msvc` and `windows-2022 / clang-cl` (CMake, clang-cl selected with `-T ClangCL`).
+- **First green run:** https://github.com/Jamie-Rodriguez/c-qc/actions/runs/34567535801. The `ClangCL` toolset was present on the `windows-2022` image, so no install step was needed.
+- **Build entry points:** `make check CC=<cc>` on Unix; `cmake -S . -B build && cmake --build build && ctest --test-dir build` on Windows. `tests/smoke.c` is the C99 canary; its exit code is the test.
+
+**Toolchain quirks recorded:**
+
+- GNU Make is never used on Windows. Windows is CMake-only, so MSVC versus clang-cl is a CMake toolset switch, not a second build file.
+- MSVC has no `-std=c99`; `CMAKE_C_STANDARD 99` is a no-op there. Windows strictness rests on `/W4 /WX`; the strict-C99 rule for the public header is enforced by the GCC and Clang jobs with `-std=c99 -pedantic -Werror`.
+- The MSVC 2015 floor is not exercised by CI (the runner ships Visual Studio 2022 only). Checking VS2015 compatibility remains a fog item.
+- `gh` is not installed on the author's machine; CI status was read through the unauthenticated public REST API. Future sessions can do the same without credentials.

@@ -32,6 +32,7 @@ A design spec plus ADRs for `qc`, a property-based testing library for C, coveri
 ## Decisions so far
 
 <!-- one line per closed ticket: gist plus link to the ticket that holds the detail -->
+- [Bootstrap the repo and three-OS CI](issues/01-bootstrap-repo-and-ci.md) — repo is https://github.com/Jamie-Rodriguez/c-qc; `.github/workflows/ci.yml` runs five jobs (Linux GCC and Clang, macOS Clang via `make check`; Windows MSVC and clang-cl via CMake) and the first run was green; Windows is CMake-only so nothing was reconciled with GNU Make there; MSVC ignores `CMAKE_C_STANDARD 99` so C99 strictness is enforced by the GCC/Clang jobs; the VS2015 floor is not exercised by CI.
 - [Survey prior art in C property-based testing](issues/02-research-prior-art-c-pbt.md) — no existing C library combines shrinking with portable crash tolerance; theft has both but depends on `fork` and fails under MSVC; draw-in-the-body APIs over a recorded stream already exist in C (qcc, tapc, Hegel), validating the choice-sequence plan; theft's untyped stream shows why typed choices matter; re-spawning the executable and reading a verdict back is the portable protocol shape; macOS CrashReporter slows crash shrinking badly; a printable replay blob is expected by users of RapidCheck, Proptest, and Hegel. Findings in `docs/research/prior-art-c-pbt.md`.
 - [Document process spawning, crash detection, timeouts, and sanitizer exit behaviour per OS](issues/05-research-process-and-crash-mechanics.md) — the parent never learns a fault address, so the worker must report it from an async-signal-safe `SA_SIGINFO` handler or a vectored exception handler; spawn with `posix_spawn` and `CreateProcessW`; suppress Windows crash and assert dialogs; timeouts via `poll` plus `SIGKILL` or `WaitForSingleObject` plus `TerminateProcess`; sanitizers exit 1 (SIGABRT on macOS by default); LeakSanitizer exists on Linux only. Findings in `docs/research/process-and-crash-mechanics.md`.
 - [Document Hypothesis's typed choice sequence](issues/03-research-hypothesis-typed-choices.md) — a test case is a flat list of choice nodes over five types (integer, float, boolean, string, bytes), each carrying its constraints; one index ordering per type defines "simpler"; collections record a boolean "more" choice before each element; replay takes a value prefix and treats a constraint violation as a misalignment; the database stores values only and re-derives constraints by replay. Findings in `docs/research/hypothesis-typed-choices.md`.
@@ -46,6 +47,7 @@ A design spec plus ADRs for `qc`, a property-based testing library for C, coveri
 - Per-OS timeout implementation: how the supervisor kills a hung worker on each platform.
 - Float generation and shrinking details: NaN and infinity policy, subnormals, the shrink order for floats.
 - Which further decisions warrant ADRs beyond 0001 and 0002.
+- Whether and how to check the MSVC 2015 floor, since CI only has Visual Studio 2022.
 
 ## Out of scope
 
