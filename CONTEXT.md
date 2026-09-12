@@ -32,6 +32,22 @@ _Avoid_: byte stream, seed data
 Something a property draws a value from.
 _Avoid_: strategy, arbitrary
 
+**Draw**:
+One call inside a property that pulls a typed value from the test case: `qc_int32`, `qc_bool`, `qc_bytes`. Each draw records one or more choices.
+_Avoid_: generate, sample
+
+**Label**:
+An optional name given to the next draw with `qc_label`, used only when reporting a counterexample. Unnamed draws report by position.
+_Avoid_: tag, annotation
+
+**List**:
+A collection drawn element by element through a `qc_list_t` handle and a `qc_more` loop. Each element is preceded by a recorded "more?" choice.
+_Avoid_: array generator, vector
+
+**Span**:
+A byte buffer with a length, `qc_span_t`, returned by the byte and string generators and owned by the test case.
+_Avoid_: slice, buffer
+
 **Worker**:
 The child process that executes test cases.
 _Avoid_: child, subprocess
